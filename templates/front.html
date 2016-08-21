@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="error">{{likeError}}</div>
+
+  {% for p in posts %}
+    {{ p.render() | safe }}
+    {% if user and p.userid == user.key().id()|string() %}
+  	<div>
+  	<a href="/blog/edit/{{ p.key().id() }}">Edit Post</a>
+  	</div>
+  	<div>
+  	<a href="/blog/delete/{{ p.key().id() }}">Delete Post</a>
+  	</div>
+  	{% endif %}
+  	<div>
+  	<p>{{p.likes}} likes</p>
+  	<a href="/blog/like/{{ p.key().id() }}">Like</a>
+  	</div>
+  	<form>
+  	<div>
+  	<textarea style="height:25px; width:300px;" name="comment"></textarea>
+  	<input style="font-size:13px;" type="submit" value="Comment">
+  	</div>
+  	</form>
+    <br><br>
+  {% endfor %}
+
+{% endblock %}
