@@ -2,7 +2,7 @@
 
 {% block content %}
 
-<div class="error">{{likeError}}</div>
+<div class="error">{{error}}</div>
 
   {% for p in posts %}
     {{ p.render() | safe }}
@@ -18,13 +18,28 @@
   	<p>{{p.likes}} likes</p>
   	<a href="/blog/like/{{ p.key().id() }}">Like</a>
   	</div>
-  	<form>
+  	<form method="post" action="/blog/comment?post_id={{p.key().id()}}">
   	<div>
   	<textarea style="height:25px; width:300px;" name="comment"></textarea>
   	<input style="font-size:13px;" type="submit" value="Comment">
   	</div>
   	</form>
+  	<table bgcolor="lightblue" border="1">
+  		{% for c in comments %}
+  		{% if c.post_id == p.key().id() %}
+  		<tr>
+  			<td>
+  				{{c.username}}
+  			</td>
+  			<td>
+  				{{c.comment}}
+  			</td>
+  		</tr>
+  		{% endif %}
+  		{% endfor %}
+  	</table>
     <br><br>
+
   {% endfor %}
 
 {% endblock %}

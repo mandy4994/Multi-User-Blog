@@ -121,6 +121,10 @@ class User(db.Model):
 def blog_key(name = 'default'):
     return db.Key.from_path('blogs', name)
 
+class UserCommentPosts(db.Model):
+    username = db.StringProperty(required = True)
+    post_id = db.IntegerProperty(required = True)
+    comment = db.StringProperty(required = True)
 
 class UserLikedPost(db.Model):
     userid = db.StringProperty(required = True)
@@ -141,7 +145,8 @@ class Post(db.Model):
 class BlogFront(BlogHandler):
     def get(self):
         posts = greetings = Post.all().order('-created')
-        self.render('front.html', posts = posts)
+        comments = UserCommentPosts.all()
+        self.render('front.html', posts = posts, comments = comments)
 
 class PostPage(BlogHandler):
     def get(self, post_id):
@@ -214,19 +219,19 @@ class LikePost(BlogHandler):
         if self.user:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
+            userid = self.read_secure_cookie('user_id')
             if self.read_secure_cookie('user_id') != post.userid:
                 #check from userlikedpost db if has entry
-                query = db.GqlQuery('''SELECT * FROM UserLikedPost WHERE userid = '''+self.read_secure_cookie('user_id')+''' and post_id = '''+post_id)
+                query = db.GqlQuery("SELECT * FROM UserLikedPost WHERE userid = '" + self.read_secure_cookie('user_id') + "' and post_id =" + post_id)
                 count = query.count()
                 if count > 0:
                     error = "You already liked this post"
                     posts = greetings = Post.all().order('-created')
-                    self.render('front.html', posts=posts, likeError = error)
+                    self.render('front.html', posts=posts, error = error)
 
                 else:
                     post.likes = post.likes + 1
                     post.put()
-                    userid = self.read_secure_cookie('user_id')
                     lp = UserLikedPost(userid=userid, post_id = int(post_id))
                     lp.put()
 
@@ -235,10 +240,35 @@ class LikePost(BlogHandler):
             else:
                 error = "You can't like your own post"
                 posts = greetings = Post.all().order('-created')
-                self.render('front.html', posts=posts, likeError = error)
+                self.render('front.html', posts=posts, error = error)
 
         else:
-            self.redirect("/login")        
+            self.redirect("/login")  
+
+class CommentPost(BlogHandler):      
+    def post(self):
+        if not self.user:
+            self.redirect('/login')
+        else:
+            userid = self.read_secure_cookie('user_id')
+            comment = self.request.get('comment')
+            post_id = self.request.get('post_id')
+            posts = greetings = Post.all().order('-created')
+            comments = UserCommentPosts.all()
+
+            if comment:
+                user = User.by_id(int(userid))
+                username = user.name
+                #enter to database
+                cp = UserCommentPosts(username = username, post_id= int(post_id), comment = comment)
+                cp.put()
+
+                comments = UserCommentPosts.all()
+                self.render('front.html', posts=posts, comments=comments)
+
+            else:
+                error = "Comment can't be empty"
+                self.render('front.html', comments=comments, posts=posts, error = error)
 
 
 ###### Unit 2 HW's
@@ -371,6 +401,7 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/unit3/welcome', Unit3Welcome),
                                ('/blog/edit/([0-9]+)', EditPost),
                                ('/blog/delete/([0-9]+)', DeletePost),
-                               ('/blog/like/([0-9]+)', LikePost)
+                               ('/blog/like/([0-9]+)', LikePost),
+                               ('/blog/comment', CommentPost)
                                ],
                               debug=True)
