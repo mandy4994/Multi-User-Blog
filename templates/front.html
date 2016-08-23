@@ -6,6 +6,7 @@
 
   {% for p in posts %}
     {{ p.render() | safe }}
+    <!--Check if user logged in is the who posted, then display edit post and delete post option-->
     {% if user and p.userid == user.key().id()|string() %}
   	<div>
   	<a href="/blog/edit/{{ p.key().id() }}">Edit Post</a>
@@ -35,13 +36,15 @@
   			<td>
   				{{c.comment}}
   			</td>
+  			{% if user and c.username == user.name %}
   			<td>
   			<form method="post" action="/blog/editcomment/{{c.key().id()}}">
-  			<textarea placeholder="edit here" name="editedcomment" style="font-size:12px;height:15px; width:100px;"></textarea>
+  			<textarea placeholder="edit here" name="editedcomment" style="font-size:12px;height:15px; width:100px;">{{c.comment}}</textarea>
   			<input style="font-size:12px;" type="submit" value="Edit">
   			</form>
   			<a href="/blog/deletecomment?commentid={{c.key().id()}}">Delete</a>
   			</td>
+  			{% endif %}
   		</tr>
   		{% endif %}
   		{% endfor %}

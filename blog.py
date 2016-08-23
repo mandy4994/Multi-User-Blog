@@ -182,8 +182,10 @@ class NewPost(BlogHandler):
             error = "subject and content, please!"
             self.render("newpost.html", subject=subject, content=content, error=error)
 
+#Handler for editing post
 class EditPost(BlogHandler):
     def get(self, post_id):
+        #Check if user is logged in
         if self.user:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
@@ -198,33 +200,39 @@ class EditPost(BlogHandler):
         if subject and content:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
+            #change the post's data
             post.subject = subject
             post.content = content
+            #Update in database
             post.put()
             self.redirect('/blog/%s' % str(post.key().id()))
         else:
             error = "subject and content, please!"
             self.render("newpost.html", subject=subject, content=content, error=error)
 
+#Handler for deleting post
 class DeletePost(BlogHandler):
     def get(self, post_id):
         if self.user:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
             post.delete()
-            time.sleep(2)
+            time.sleep(1)
             self.redirect("/blog")
 
+#Handler for liking post
 class LikePost(BlogHandler):
     def get(self, post_id):
+        #Check if user is logged in to like post
         if self.user:
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
             userid = self.read_secure_cookie('user_id')
             comments = UserCommentPosts.all()
-            if self.read_secure_cookie('user_id') != post.userid:
-                #check from userlikedpost db if has entry
-                query = db.GqlQuery("SELECT * FROM UserLikedPost WHERE userid = '" + self.read_secure_cookie('user_id') + "' and post_id =" + post_id)
+            #Check if author is not liking his own post
+            if userid != post.userid:
+                #check if user has liked the post before
+                query = db.GqlQuery("SELECT * FROM UserLikedPost WHERE userid = '" + userid + "' and post_id =" + post_id)
                 count = query.count()
                 if count > 0:
                     error = "You already liked this post"
@@ -247,8 +255,10 @@ class LikePost(BlogHandler):
         else:
             self.redirect("/login")  
 
+#Handler for commenting on post
 class CommentPost(BlogHandler):      
     def post(self):
+        # if user is not logged in he is redirected to login screen
         if not self.user:
             self.redirect('/login')
         else:
@@ -272,6 +282,7 @@ class CommentPost(BlogHandler):
                 error = "Comment can't be empty"
                 self.render('front.html', comments=comments, posts=posts, error = error)
 
+#Handler for editing comment on post
 class EditComment(BlogHandler):
     def post(self,commentid):
         if self.user:
@@ -282,8 +293,6 @@ class EditComment(BlogHandler):
             userid = self.read_secure_cookie('user_id')
             user = User.by_id(int(userid))
             newcomment = self.request.get('editedcomment')
-            logging.info(user.name)
-            logging.info(comment.username)
             #compare if user logged in is the one who commented by checking username since every username is unique
             if user.name == comment.username:
                 comment.comment = newcomment
@@ -300,6 +309,7 @@ class EditComment(BlogHandler):
         else:
             self.redirect("/login")
 
+##Handler for deleting comment on post
 class DeleteComment(BlogHandler):
     def get(self):
         if self.user:

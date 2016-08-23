@@ -21,6 +21,11 @@
     {% endif %}
   </div>
 
+  {% if user %}
+  <div class="head_createpost">
+  <a href="/blog/newpost">Create a post</a>
+  </div>
+  {% endif %}
   <div id="content">
   {% block content %}
   {% endblock %}
