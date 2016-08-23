@@ -25,6 +25,7 @@
   	</div>
   	</form>
   	<table bgcolor="lightblue" border="1">
+  	<thead>Comments</thead>
   		{% for c in comments %}
   		{% if c.post_id == p.key().id() %}
   		<tr>
@@ -33,6 +34,13 @@
   			</td>
   			<td>
   				{{c.comment}}
+  			</td>
+  			<td>
+  			<form method="post" action="/blog/editcomment/{{c.key().id()}}">
+  			<textarea placeholder="edit here" name="editedcomment" style="font-size:12px;height:15px; width:100px;"></textarea>
+  			<input style="font-size:12px;" type="submit" value="Edit">
+  			</form>
+  			<a href="/blog/deletecomment?commentid={{c.key().id()}}">Delete</a>
   			</td>
   		</tr>
   		{% endif %}

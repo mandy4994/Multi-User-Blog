@@ -4,6 +4,7 @@ import random
 import hashlib
 import time
 import hmac
+import logging
 from string import letters
 
 import webapp2
@@ -220,6 +221,7 @@ class LikePost(BlogHandler):
             key = db.Key.from_path('Post', int(post_id), parent=blog_key())
             post = db.get(key)
             userid = self.read_secure_cookie('user_id')
+            comments = UserCommentPosts.all()
             if self.read_secure_cookie('user_id') != post.userid:
                 #check from userlikedpost db if has entry
                 query = db.GqlQuery("SELECT * FROM UserLikedPost WHERE userid = '" + self.read_secure_cookie('user_id') + "' and post_id =" + post_id)
@@ -227,7 +229,7 @@ class LikePost(BlogHandler):
                 if count > 0:
                     error = "You already liked this post"
                     posts = greetings = Post.all().order('-created')
-                    self.render('front.html', posts=posts, error = error)
+                    self.render('front.html', comments = comments, posts=posts, error = error)
 
                 else:
                     post.likes = post.likes + 1
@@ -240,7 +242,7 @@ class LikePost(BlogHandler):
             else:
                 error = "You can't like your own post"
                 posts = greetings = Post.all().order('-created')
-                self.render('front.html', posts=posts, error = error)
+                self.render('front.html', comments = comments, posts=posts, error = error)
 
         else:
             self.redirect("/login")  
@@ -262,7 +264,7 @@ class CommentPost(BlogHandler):
                 #enter to database
                 cp = UserCommentPosts(username = username, post_id= int(post_id), comment = comment)
                 cp.put()
-
+                time.sleep(1)
                 comments = UserCommentPosts.all()
                 self.render('front.html', posts=posts, comments=comments)
 
@@ -270,6 +272,55 @@ class CommentPost(BlogHandler):
                 error = "Comment can't be empty"
                 self.render('front.html', comments=comments, posts=posts, error = error)
 
+class EditComment(BlogHandler):
+    def post(self,commentid):
+        if self.user:
+            logging.info(commentid)
+            #get comment object from comment id
+            key = db.Key.from_path('UserCommentPosts', int(commentid))
+            comment = db.get(key)
+            userid = self.read_secure_cookie('user_id')
+            user = User.by_id(int(userid))
+            newcomment = self.request.get('editedcomment')
+            logging.info(user.name)
+            logging.info(comment.username)
+            #compare if user logged in is the one who commented by checking username since every username is unique
+            if user.name == comment.username:
+                comment.comment = newcomment
+                comment.put()
+                posts = greetings = Post.all().order('-created')
+                comments = UserCommentPosts.all()
+                time.sleep(1)
+                self.render('front.html', posts=posts, comments=comments)
+            else:
+                error = "You can only edit your comment"
+                posts = greetings = Post.all().order('-created')
+                comments = UserCommentPosts.all()
+                self.render('front.html', posts=posts, comments=comments, error=error)
+        else:
+            self.redirect("/login")
+
+class DeleteComment(BlogHandler):
+    def get(self):
+        if self.user:
+            commentid = self.request.get("commentid")
+            key = db.Key.from_path('UserCommentPosts', int(commentid))
+            comment = db.get(key)
+            userid = self.read_secure_cookie('user_id')
+            user = User.by_id(int(userid))
+            #compare if user logged in is the one who commented by checking username since every username is unique
+            if user.name == comment.username:
+                comment.delete()
+                time.sleep(1)
+                self.redirect("/blog")
+            else:
+                error = "You can only delete your comment"
+                posts = greetings = Post.all().order('-created')
+                comments = UserCommentPosts.all()
+                self.render('front.html', posts=posts, comments=comments, error=error)
+
+        else:
+            self.redirect("/login")
 
 ###### Unit 2 HW's
 class Rot13(BlogHandler):
@@ -402,6 +453,8 @@ app = webapp2.WSGIApplication([('/', MainPage),
                                ('/blog/edit/([0-9]+)', EditPost),
                                ('/blog/delete/([0-9]+)', DeletePost),
                                ('/blog/like/([0-9]+)', LikePost),
-                               ('/blog/comment', CommentPost)
+                               ('/blog/comment', CommentPost),
+                               ('/blog/editcomment/([0-9a-zA-Z]+)', EditComment),
+                               ('/blog/deletecomment', DeleteComment)
                                ],
                               debug=True)
