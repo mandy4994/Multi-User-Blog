@@ -250,16 +250,15 @@ class EditPost(BlogHandler):
 class DeletePost(BlogHandler):
 
     def get(self, post_id):
-        if self.user:
-            key = db.Key.from_path('Post', int(post_id), parent=blog_key())
-            post = db.get(key)
-            # Check if current user is the author of the post
-            if self.read_secure_cookie('user_id') == post.userid:
-                post.delete()
-                time.sleep(1)
-                self.redirect("/blog")
-            else:
-                self.redirect("/login")
+        key = db.Key.from_path('Post', int(post_id), parent=blog_key())
+        post = db.get(key)
+        # Check if current user is the author of the post
+        if self.user and self.read_secure_cookie('user_id') == post.userid:
+            post.delete()
+            time.sleep(1)
+            self.redirect("/blog")
+        else:
+            self.redirect("/login")
 
 # Handler for liking post
 
